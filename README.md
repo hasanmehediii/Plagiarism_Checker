@@ -1,4 +1,4 @@
-# Copy Checker
+# Plagiarism Checker
 
 This is a simple Copy Checker app with a React frontend and FastAPI backend.  
 It allows you to upload two text files and checks their similarity, highlighting matched lines.
