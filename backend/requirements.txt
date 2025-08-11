@@ -3,4 +3,3 @@ Flask-Cors
 PyPDF2
 python-docx
 scikit-learn
-vercel-python
