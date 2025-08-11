@@ -1,0 +1,57 @@
+## Vercel Deployment Instructions for Plagiarism Checker
+
+This guide will walk you through deploying your Plagiarism Checker application (React Frontend and Python Serverless Backend) to Vercel.
+
+### Prerequisites:
+1.  A GitHub account with your project pushed to a repository.
+2.  A Vercel account (sign up at [https://vercel.com/signup](https://vercel.com/signup)).
+3.  Node.js and npm installed locally (for Vercel CLI).
+4.  **Vercel CLI:** Install it globally by running: `npm install -g vercel`
+
+### Step 1: Prepare Your Project
+
+1.  **Ensure `vercel.json` is at the project root:** You should have a `vercel.json` file in the `/home/mehedi/Plagiarism_Checker/` directory. This file configures how Vercel builds and routes your application.
+2.  **Commit and Push to GitHub:** Make sure all your latest changes (including `vercel.json`, updated `backend/main.py`, and `frontend/src/App.js`) are committed and pushed to your GitHub repository.
+
+### Step 2: Deploy to Vercel
+
+1.  **Navigate to your project directory:** Open your terminal or command prompt and navigate to the root of your `Plagiarism_Checker` project:
+    ```bash
+    cd /home/mehedi/Plagiarism_Checker/
+    ```
+2.  **Login to Vercel CLI:** If you haven't logged in before, run:
+    ```bash
+    vercel login
+    ```
+    Follow the prompts to log in via your web browser.
+3.  **Deploy your project:** Run the deploy command:
+    ```bash
+    vercel
+    ```
+    *   **Set up and deploy?** Press `Y`.
+    *   **Which scope?** Select your Vercel personal account or team.
+    *   **Link to existing project?** If this is your first time deploying this project, select `N` (No). If you've deployed it before, select `Y` and choose the existing project.
+    *   **What's your project's name?** `plagiarism-checker` (or a name of your choice).
+    *   **In which directory is your code located?** Press `Enter` to select the current directory (`./`).
+    *   **It seems like you are using Create React App...** Press `Enter` to confirm.
+    *   **Want to override the settings?** Press `N`.
+
+    Vercel will now build and deploy your application. This process might take a few minutes as it builds both the frontend and the Python serverless function.
+
+4.  **Deployment URL:** Once the deployment is complete, Vercel will provide you with a production URL (e.g., `https://plagiarism-checker-xxxx.vercel.app`). Copy this URL.
+
+### Step 3: Test Your Deployed Application
+
+1.  Open the production URL provided by Vercel in your web browser.
+2.  Try uploading two documents (PDF, DOCX, or TXT) and click "Analyze Plagiarism".
+3.  The frontend should communicate with the serverless Python backend and display the similarity score.
+
+### Important Notes for Vercel:
+
+*   **Serverless Functions:** Your Python backend (`backend/main.py`) is deployed as a serverless function. This means it only runs when an API request is made, and it scales automatically.
+*   **Build Process:** Vercel automatically detects your React app and Python code based on the `vercel.json` configuration and builds them accordingly.
+*   **Environment Variables:** For production, it's recommended to manage sensitive information (if any) using Vercel's environment variables feature in your project settings on the Vercel dashboard.
+*   **Custom Domains:** You can add a custom domain to your Vercel project from your Vercel dashboard.
+*   **Troubleshooting:** If you encounter issues, check the build logs on your Vercel dashboard for the specific deployment. They provide detailed information about any errors during the build or runtime.
+
+Good luck with your Vercel deployment!

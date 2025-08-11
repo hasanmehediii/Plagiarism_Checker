@@ -1,41 +1,54 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-import difflib
+import os
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import PyPDF2
+import docx
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
-app = FastAPI()
+app = Flask(__name__)
+CORS(app)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Adjust origins in production for security
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def get_text(file):
+    """Extract text from a file (PDF, DOCX, or TXT)."""
+    text = ""
+    if file.filename.endswith('.pdf'):
+        pdf_reader = PyPDF2.PdfReader(file.stream)
+        for page in pdf_reader.pages:
+            text += page.extract_text()
+    elif file.filename.endswith('.docx'):
+        doc = docx.Document(file.stream)
+        for para in doc.paragraphs:
+            text += para.text
+    elif file.filename.endswith('.txt'):
+        text = file.stream.read().decode('utf-8')
+    return text
 
-@app.post("/compare")
-async def compare_files(file1: UploadFile = File(...), file2: UploadFile = File(...)):
-    # Read and decode file contents as lists of lines
-    content1 = (await file1.read()).decode('utf-8').splitlines()
-    content2 = (await file2.read()).decode('utf-8').splitlines()
+@app.route('/api/analyze', methods=['POST'])
+def analyze():
+    """Analyze two documents for plagiarism."""
+    if 'file1' not in request.files or 'file2' not in request.files:
+        return jsonify({"error": "Two files are required."}), 400
 
-    # Join lines back to strings for overall similarity calculation
-    text1 = '\n'.join(content1)
-    text2 = '\n'.join(content2)
+    file1 = request.files['file1']
+    file2 = request.files['file2']
 
-    # Calculate overall similarity ratio on full text strings
-    matcher = difflib.SequenceMatcher(None, text1, text2)
-    similarity = round(matcher.ratio() * 100, 2)
+    if file1.filename == '' or file2.filename == '':
+        return jsonify({"error": "Two files are required."}), 400
 
-    # Find lines in content1 that approximately match any line in content2 (80%+ similarity)
-    matched_lines = []
-    for line1 in content1:
-        for line2 in content2:
-            ratio = difflib.SequenceMatcher(None, line1.strip().lower(), line2.strip().lower()).ratio()
-            if ratio > 0.8:
-                matched_lines.append(line1)
-                break
+    try:
+        text1 = get_text(file1)
+        text2 = get_text(file2)
 
-    return JSONResponse(content={
-        "similarity": similarity,
-        "matched_lines": matched_lines
-    })
+        if not text1 or not text2:
+            return jsonify({"error": "Could not extract text from one or both files. Make sure they are not empty or corrupted."}), 400
+
+        vectorizer = TfidfVectorizer().fit_transform([text1, text2])
+        vectors = vectorizer.toarray()
+        similarity = cosine_similarity(vectors)
+        score = similarity[0][1] * 100
+
+        return jsonify({"similarity_score": score})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

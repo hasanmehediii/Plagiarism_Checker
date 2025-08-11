@@ -1,3 +1,6 @@
-fastapi
-uvicorn
-python-multipart
+Flask
+Flask-Cors
+PyPDF2
+python-docx
+scikit-learn
+vercel-python

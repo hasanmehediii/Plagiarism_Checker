@@ -1,46 +1,53 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import './App.css';
 
 function App() {
   const [file1, setFile1] = useState(null);
   const [file2, setFile2] = useState(null);
-  const [file1Content, setFile1Content] = useState('');
-  const [file2Content, setFile2Content] = useState('');
-  const [similarity, setSimilarity] = useState(null);
-  const [matchedLines, setMatchedLines] = useState([]);
+  const [similarityScore, setSimilarityScore] = useState(null);
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleFileChange = (e, setFile, setContent) => {
-    const file = e.target.files[0];
-    setFile(file);
-
-    const reader = new FileReader();
-    reader.onload = () => setContent(reader.result);
-    reader.readAsText(file);
+  const handleFile1Change = (e) => {
+    setFile1(e.target.files[0]);
   };
 
-  const handleScan = async () => {
+  const handleFile2Change = (e) => {
+    setFile2(e.target.files[0]);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setSimilarityScore(null);
+    setError(null);
+
     if (!file1 || !file2) {
-      alert('Please upload both files!');
+      setError("Please select both files.");
+      setLoading(false);
       return;
     }
-
-    setLoading(true);
-    setSimilarity(null);
-    setMatchedLines([]);
 
     const formData = new FormData();
     formData.append('file1', file1);
     formData.append('file2', file2);
 
     try {
-      const response = await axios.post('http://localhost:8000/compare', formData);
-      setSimilarity(response.data.similarity);
-      setMatchedLines(response.data.matched_lines);
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error during scanning. Check backend connection.');
+      const response = await fetch('/api/analyze', { // Changed to relative path for Vercel
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSimilarityScore(data.similarity_score);
+      } else {
+        setError(data.error || "An error occurred during analysis.");
+      }
+    } catch (err) {
+      setError("Could not connect to the server. Please ensure the backend is running.");
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
@@ -48,60 +55,40 @@ function App() {
 
   return (
     <div className="App">
-      <h1>📄Copy Checker</h1>
-
-      <div className="upload-section">
-        <div className="upload-card">
-          <label>File 1:</label>
-          <textarea
-            readOnly
-            value={file1Content}
-            placeholder="Enter your text here or upload a file"
-            rows={8}
-          />
-          <input
-            type="file"
-            onChange={(e) => handleFileChange(e, setFile1, setFile1Content)}
-          />
-        </div>
-
-        <div className="upload-card">
-          <label>File 2:</label>
-          <textarea
-            readOnly
-            value={file2Content}
-            placeholder="Enter your text here or upload a file"
-            rows={8}
-          />
-          <input
-            type="file"
-            onChange={(e) => handleFileChange(e, setFile2, setFile2Content)}
-          />
-        </div>
-      </div>
-
-      <button onClick={handleScan} disabled={loading}>
-        {loading ? 'Scanning...' : 'Start Scanning'}
-      </button>
-
-      {similarity !== null && (
-        <div className="results">
-          <h2>
-            Similarity: <span>{similarity}%</span>
-          </h2>
-
-          {matchedLines.length > 0 ? (
-            <div className="matched-lines">
-              <h3>Matched Lines:</h3>
-              {matchedLines.map((line, index) => (
-                <p key={index} className="matched-line">{line}</p>
-              ))}
+      <header className="App-header">
+        <h1>Plagiarism Checker</h1>
+      </header>
+      <main className="App-main">
+        <div className="card">
+          <form onSubmit={handleSubmit}>
+            <div className="file-input-group">
+              <label htmlFor="file1">Document 1:</label>
+              <input type="file" id="file1" onChange={handleFile1Change} accept=".pdf,.docx,.txt" />
             </div>
-          ) : (
-            <p>No significant matches found.</p>
+            <div className="file-input-group">
+              <label htmlFor="file2">Document 2:</label>
+              <input type="file" id="file2" onChange={handleFile2Change} accept=".pdf,.docx,.txt" />
+            </div>
+            <button type="submit" disabled={loading}>
+              {loading ? 'Analyzing...' : 'Analyze Plagiarism'}
+            </button>
+          </form>
+
+          {error && <p className="error-message">{error}</p>}
+
+          {similarityScore !== null && (
+            <div className="result">
+              <h2>Similarity Score:</h2>
+              <p className={similarityScore > 50 ? 'high-similarity' : 'low-similarity'}>
+                {similarityScore.toFixed(2)}%
+              </p>
+              {similarityScore > 50 && (
+                <p className="warning">High similarity detected! This might indicate plagiarism.</p>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </main>
     </div>
   );
 }
